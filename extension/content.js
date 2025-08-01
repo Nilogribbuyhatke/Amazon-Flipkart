@@ -1,96 +1,103 @@
-async function run() {
-  console.log("Scraper starting...");
+(async function run() {
+  console.log("Scraper starting…");
 
-  /**
-   * Waits for an element to exist in the DOM.
-   * @param {string} selector - The CSS selector of the element to wait for.
-   * @param {number} [timeout=7000] - Max time to wait in milliseconds.
-   * @returns {Promise<Element|null>} - A promise that resolves with the element or null if timed out.
-   */
-  function waitForElement(selector, timeout = 7000) {
-    return new Promise(resolve => {
-      const interval = setInterval(() => {
-        const element = document.querySelector(selector);
-        if (element) {
-          clearInterval(interval);
-          resolve(element);
+  // 1) Get your config for this URL:
+  const cfg = await new Promise(resolve =>
+    chrome.runtime.sendMessage({ type: "GET_CONFIG", url: location.href }, resolve)
+  );
+  if (!cfg) {
+    return console.warn("No scraping config for", location.hostname);
+  }
+
+  // 2) Flatten all of your rule-selectors into a single array:
+  const allSelectors = [];
+  for (const rules of Object.values(cfg)) {
+    for (const rule of rules) {
+      if (Array.isArray(rule.selector)) {
+        allSelectors.push(...rule.selector);
+      } else {
+        allSelectors.push(rule.selector);
+      }
+    }
+  }
+
+  // 3) Wait until *any* of those selectors appears in the DOM, or timeout:
+  function waitForAnySelector(selectors, timeout = 7000) {
+    return new Promise((resolve, reject) => {
+      const observer = new MutationObserver((mutations, obs) => {
+        for (const sel of selectors) {
+          if (document.querySelector(sel)) {
+            obs.disconnect();
+            return resolve(sel);
+          }
         }
-      }, 100); // Check every 100ms
+      });
+
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+
+      // Also check immediately in case it’s already there:
+      for (const sel of selectors) {
+        if (document.querySelector(sel)) {
+          observer.disconnect();
+          return resolve(sel);
+        }
+      }
 
       setTimeout(() => {
-        clearInterval(interval);
-        resolve(null); // Stop waiting and resolve with null after timeout
+        observer.disconnect();
+        reject(new Error(`Timed out after ${timeout}ms waiting for any of: ${selectors.join(", ")}`));
       }, timeout);
     });
   }
 
-  // Wait specifically for the color filters to appear, since they seem to load last.
-  const filtersAreReady = await waitForElement('.colour-listItem');
-
-  if (!filtersAreReady) {
-    console.log("Scraper timed out waiting for filter elements to load.");
+  let readySelector;
+  try {
+    readySelector = await waitForAnySelector(allSelectors, 10000);
+    console.log("Detected filter container via selector:", readySelector);
+  } catch (err) {
+    console.error(err);
     return;
   }
 
-  // Now that we know the filters are ready, we can proceed.
-  const cfg = await new Promise(resolve => {
-    chrome.runtime.sendMessage({ type: "GET_CONFIG", url: location.href }, cfg => resolve(cfg));
-  });
-
-  if (!cfg) {
-    console.log("Scraper: No config found for", location.hostname);
-    return;
-  }
-
+  // 4) The same generic extractField you already have, just fixed typo:
   function extractField(rules, parent = document) {
     if (!Array.isArray(rules)) return null;
     for (const rule of rules) {
-      const selectors = Array.isArray(rule.selector) ? rule.selector : [rule.selector];
-      const attribute = rule.attribute || 'innerText';
-      for (const sel of selectors) {
+      const sels = Array.isArray(rule.selector) ? rule.selector : [rule.selector];
+      const attr = rule.attribute || "innerText";
+
+      for (const sel of sels) {
         if (rule.global) {
-          const elements = parent.querySelectorAll(sel);
-          if (elements.length > 0) {
-            // First, get the array of results as before.
-            const resultsArray = Array.from(elements).map(el => (el[attribute] || el.getAttribute(attribute) || '').trim());
-            
-            // **NEW**: Check if a 'join' property exists in the rule.
-            if (rule.join) {
-              return resultsArray.join(rule.join); // If it exists, join the array into a string.
-            }
-            
-            // Otherwise, return the array as usual.
-            return resultsArray;
+          const els = parent.querySelectorAll(sel);
+          if (els.length) {
+            const texts = Array.from(els).map(el => (el[attr] || el.getAttribute(attr) || "").trim());
+            return rule.join ? texts.join(rule.join) : texts;
           }
         } else {
-          // ... (rest of the function is the same)
-          const element = parent.querySelector(sel);
-          if (element) {
-            let rawValue = element[attribute] || el.getAttribute(attribute);
-            if (rawValue) {
-              rawValue = rawValue.toString().trim();
-              if (rule.regex) {
-                const match = new RegExp(rule.regex).exec(rawValue);
-                if (match) return match[1] || match[0];
-              }
-              return rawValue;
+          const el = parent.querySelector(sel);
+          if (el) {
+            let raw = el[attr] || el.getAttribute(attr) || "";
+            raw = raw.toString().trim();
+            if (rule.regex) {
+              const m = new RegExp(rule.regex).exec(raw);
+              if (m) return m[1] || m[0];
             }
+            return raw;
           }
         }
       }
     }
     return null;
   }
-  
-  // --- Main Execution ---
-  const scrapedData = {};
-  for (const key in cfg) {
-    const propertyName = key.replace('Selector', '');
-    scrapedData[propertyName] = extractField(cfg[key]);
+
+  // 5) Scrape every configured field:
+  const scraped = {};
+  for (const [key, rules] of Object.entries(cfg)) {
+    scraped[key.replace("Selector", "")] = extractField(rules);
   }
 
-  console.log("✅ Scraped Data:", scrapedData);
-}
-
-// Run the scraper automatically
-run();
+  console.log("✅ Scraped Data:", scraped);
+})();

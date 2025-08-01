@@ -58,34 +58,34 @@ module.exports =
         "global": true
       }
     ],
-    // "priceBandSelector": [
-    //   {
-    //     "selector": "#priceRefinements .a-list-item .a-link-normal span",
-    //     "attribute": "innerText",
-    //     "global": true
-    //   }
-    // ],
-    // "materialSelector": [
-    //   {
-    //     "selector": "#p_n_material_browse\\/1974774031 .a-list-item span.a-size-base.a-color-base",
-    //     "attribute": "innerText",
-    //     "global": true
-    //   }
-    // ],
-    // "typeOfFitSelector": [
-    //   {
-    //     "selector": "#p_n_size_five_browse-vebin\\/1975309031 .a-list-item span.a-size-base.a-color-base",
-    //     "attribute": "innerText",
-    //     "global": true
-    //   }
-    // ],
-    // "discountSelector": [
-    //   {
-    //     "selector": "#p_n_pct-off-with-tax\\/2665398031 .a-list-item span.a-size-base.a-color-base",
-    //     "attribute": "innerText",
-    //     "global": true
-    //   }
-    // ]
+    "priceBandSelector": [
+      {
+        "selector": "#priceRefinements .a-list-item .a-link-normal span",
+        "attribute": "innerText",
+        "global": true
+      }
+    ],
+    "materialSelector": [
+      {
+        "selector": "#p_n_material_browse\\/1974774031 .a-list-item span.a-size-base.a-color-base",
+        "attribute": "innerText",
+        "global": true
+      }
+    ],
+    "typeOfFitSelector": [
+      {
+        "selector": "#p_n_size_five_browse-vebin\\/1975309031 .a-list-item span.a-size-base.a-color-base",
+        "attribute": "innerText",
+        "global": true
+      }
+    ],
+    "discountSelector": [
+      {
+        "selector": "#p_n_pct-off-with-tax\\/2665398031 .a-list-item span.a-size-base.a-color-base",
+        "attribute": "innerText",
+        "global": true
+      }
+    ]
 }
   // ... other site configs
 };

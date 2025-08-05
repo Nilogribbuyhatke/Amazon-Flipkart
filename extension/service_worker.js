@@ -13,7 +13,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     // If not cached, fetch it from your server.
-    fetch(`http://localhost:3000/api/config?hostname=${hostname}`)
+    fetch(`http://localhost:3003/api/config?hostname=${hostname}`)
       .then(res => res.json())
       .then(cfg => {
         CONFIG_CACHE[hostname] = cfg; // Save the config to the cache.

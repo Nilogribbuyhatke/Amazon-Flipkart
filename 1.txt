@@ -1,0 +1,72 @@
+/**
+ * Finds ALL filter sections on the page and extracts the title and options from each.
+ * Uses a single, specific selector for options to prevent duplicates.
+ */
+function extractAllFilters() {
+    // 1. Define the selectors for the repeating elements.
+    const containerSelector = '[class~="-5qqlC"][class~="_2OLUF3"]';
+    const titleSelector = '.fxf7w6.rgHxCQ'; 
+    
+    // --- THIS IS THE CORRECTED LINE ---
+    // We now use only the more specific selector for the entire option block
+    // to avoid selecting both a parent and its child element.
+    const optionSelector = '.QCKZip.hpLdC3';
+
+    // 2. Find ALL filter container elements on the page.
+    const allContainerElements = document.querySelectorAll(containerSelector);
+
+    if (allContainerElements.length === 0) {
+        console.error("No filter containers found with selector:", containerSelector);
+        return null;
+    }
+    console.log(`✅ Found ${allContainerElements.length} filter sections to process.`);
+
+    // 3. Initialize an object to hold all the data we find.
+    const allExtractedData = {};
+
+    // 4. Loop through each container element we found.
+    allContainerElements.forEach((containerElement, index) => {
+        console.log(`--- Processing Section ${index + 1} ---`);
+
+        // 5. Find the title element WITHIN the current container.
+        const titleElement = containerElement.querySelector(titleSelector);
+        if (!titleElement) {
+            console.warn(`Could not find a title for section ${index + 1}. Skipping.`);
+            return;
+        }
+        const sectionTitle = titleElement.textContent.trim();
+        console.log(`  > Found Title: "${sectionTitle}"`);
+
+        // 6. Find all option elements WITHIN the current container.
+        const optionElements = containerElement.querySelectorAll(optionSelector);
+        if (optionElements.length === 0) {
+            console.warn(`  > No options found for "${sectionTitle}".`);
+            allExtractedData[sectionTitle] = [];
+            return;
+        }
+
+        // 7. Extract the 'title' or 'textContent' from each option.
+        const optionValues = Array.from(optionElements).map(el => {
+            return el.getAttribute('title') || el.textContent.trim();
+        });
+        console.log(`  > Found ${optionValues.length} options.`);
+        
+        // 8. Add this section's data to our main results object.
+        allExtractedData[sectionTitle] = optionValues;
+    });
+
+    // 9. Return the complete object containing data from all sections.
+    return allExtractedData;
+}
+
+// --- Main execution ---
+try {
+    const finalData = extractAllFilters();
+    if (finalData) {
+        console.log("--- EXTRACTION COMPLETE ---");
+        console.log("🎯 Final extracted data:");
+        console.log(finalData);
+    }
+} catch (error) {
+    console.error("An error occurred during scraping:", error);
+}

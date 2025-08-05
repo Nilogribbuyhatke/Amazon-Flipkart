@@ -24,7 +24,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse(null); // Respond with null if there was an error.
       });
 
-    // **IMPORTANT**: Return true to indicate that `sendResponse` will be called asynchronously.
     return true;
   }
 });

@@ -1,11 +1,10 @@
 const express = require("express");
 const cors = require("cors");
-const configs = require("./config");   
-const siteMap = require("./sitemap");  
+const configs = require("./config");
+const siteMap = require("./sitemap");
 
 const app = express();
 
-// Allow all origins for now
 app.use(cors());
 
 app.get("/api/config", (req, res) => {
